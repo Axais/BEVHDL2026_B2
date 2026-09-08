@@ -1,0 +1,36 @@
+# --- Dossiers generes par Quartus ---
+db/
+incremental_db/
+output_files/
+greybox_tmp/
+
+# --- Dossiers generes par ModelSim ---
+simulation/
+work/
+rtl_work/
+
+# --- Anciens fichiers et support de cours ---
+_archive/
+Docs/
+
+# --- Fichiers generes ---
+*.bak
+*.qws
+*.wlf
+*.rpt
+*.summary
+*.smsg
+*.pin
+*.sof
+*.pof
+*.jdi
+*.done
+*.cdf
+*.qdf
+*.sld
+transcript
+modelsim.ini
+vsim.dbg
+
+# --- Dossier de travail Claude ---
+Claude outputs/
