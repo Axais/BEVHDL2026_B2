@@ -1,8 +1,5 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
-use ieee.std_logic_arith.all;
-
 
 entity pwm is
     generic (
@@ -22,13 +19,14 @@ architecture Beh of pwm is
 
 begin
 
+    -- Partie séquentielle
     process(clk, rst)
     begin
         if (rst = '0') then
             compteur <= 0;
 
         elsif rising_edge(clk) then
-            if (compteur = max - 1) then -- car la valeur du signal est màj en fin d'archi
+            if (compteur = max - 1) then
                 compteur <= 0;
             else
                 compteur <= compteur + 1;
@@ -36,6 +34,7 @@ begin
         end if;
     end process;
 
+    -- Sorties
     pwm_out <= '1' when compteur < rapport_cyclique else '0';
 
 end Beh;

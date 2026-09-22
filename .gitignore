@@ -34,3 +34,7 @@ vsim.dbg
 
 # --- Dossier de travail Claude ---
 Claude outputs/
+
+# --- Projet Quartus (non versionne) ---
+Led.qpf
+Led.qsf
