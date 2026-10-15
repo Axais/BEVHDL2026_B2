@@ -1,7 +1,10 @@
 # BE VHDL 2026 — B2
 
+**Alexandre Aragones et Mathieu Florens** — M2 SME, Université de Toulouse
+
 Travaux VHDL sur carte DE0-Nano (Cyclone IV E, EP4CE22F17C6), horloge 50 MHz,
-sous Quartus Prime 18.1 Lite et ModelSim-Altera.
+sous Quartus Prime 18.1 Lite et ModelSim-Altera, avec Platform Designer et Eclipse
+(Nios II) pour le SOPC.
 
 ## `TP_VHDL/`
 
@@ -18,13 +21,15 @@ Un dossier par système, contenant le code VHDL, son testbench ModelSim et les c
 
 ## `BE_2026/`
 
-Bureau d'études : même organisation qu'en TP, un dossier par module.
+Bureau d'études : pilote automatique de barre franche, découpé en circuits reliés
+à un Nios II par le bus Avalon. Même organisation qu'en TP, un dossier par module.
+
 Le compte rendu de l'étape SOPC (Nios II + PWM + anémomètre) est dans
-[`BE_2026/README.md`](BE_2026/README.md).
+[`BE_2026/README.md`](BE_2026/README.md). Prochaine étape : la gestion du vérin.
 
 | Dossier | Ce que fait le système |
 |---|---|
-| `gestion_anemometre/` | Mesure de la fréquence de l'anémomètre par comptage des fronts pendant 1 s. Machine de Moore à 4 états (`attente`, `mesure`, `fin`, `attente_acq`), deux modes pilotés par `continu` et `start_stop` : monocoup avec acquittement, ou relance immédiate. Résultat sur 8 bits dans `data_anemometre`, recopié sur `led` pour la vérification sur carte. |
-| `pwm/` | PWM dont la fréquence et le rapport cyclique sont réglés par le Nios. |
-| `SOPC/` | Système Nios II (Platform Designer) avec le PWM et l'anémomètre, validé sur carte. |
-| `pwm_moteur/` | PWM par comparateur (`max = 1024`, rapport cyclique 500/1024) avec inversion du sens de rotation à chaque appui. Machine à 2 états `attente` / `appui` pour ne compter qu'une fois un appui maintenu. |
+| `gestion_anemometre/` | Mesure de la fréquence de l'anémomètre par comptage des fronts pendant 1 s. Machine de Moore à 4 états (`attente`, `mesure`, `fin`, `attente_acq`), en mode monocoup ou continu. Résultat sur 8 bits, recopié sur `led`. Avec son interface Avalon. |
+| `pwm/` | PWM dont la fréquence et le rapport cyclique sont réglés par le Nios, avec son interface Avalon. |
+| `SOPC/` | Système Nios II (Platform Designer) où le PWM est renvoyé sur l'anémomètre : projet Quartus, programme `main.c` et captures. Validé sur carte de 10 à 250 Hz. |
+| `pwm_moteur/` | Première ébauche du PWM moteur (rapport cyclique fixe, inversion du sens à chaque appui), non utilisée dans le SOPC. |
