@@ -1,6 +1,6 @@
 # BE 2026 — SOPC Nios II : PWM + anémomètre
 
-**Alexandre Aragones** — M2 SME, groupe B2 — DE0-Nano (Cyclone IV E), Quartus 18.1 Lite
+**Alexandre Aragones et Mathieu Florens** — M2 SME, groupe B2 — DE0-Nano (Cyclone IV E), Quartus 18.1 Lite
 
 ## Objectif
 
