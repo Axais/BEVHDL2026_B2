@@ -17,7 +17,13 @@ Nios impose une fréquence et vérifie que l'anémomètre mesure la même.
    (méthode du document COMPOSANT-NIOS). Le bit `valid` de l'anémomètre est mémorisé
    jusqu'à sa lecture, sinon il ne dure que 20 ns en mode continu.
 3. **Platform Designer** : Nios II/e, RAM 32 Ko, System ID, JTAG UART et les deux composants.
-4. **Haut niveau** `SOPC.vhd` : relie la sortie du PWM à l'entrée de l'anémomètre.
+
+   ![Système dans Platform Designer](SOPC/Captures/platform_designer_SOPC_pwm_anemo.png)
+
+4. **Haut niveau** `SOPC.vhd` : relie la sortie du PWM à l'entrée de l'anémomètre (vue RTL).
+
+   ![Vue RTL de SOPC.vhd](SOPC/Captures/rtl_view_SOPC_pwm_anemo.png)
+
 5. **Logiciel** `main.c` (Eclipse) : impose six fréquences au PWM et affiche la mesure.
 
 ## Résultats
@@ -27,23 +33,13 @@ exactement la consigne de 10 à 250 Hz, et 0 quand le PWM est arrêté.
 
 **Sur la carte**, console Eclipse :
 
-```
-Validation SOPC : PWM bouclee sur l'anemometre
-consigne (Hz) | mesure (Hz) | ecart
-      10    |      10    |   0
-      25    |      25    |   0
-      50    |      50    |   0
-      100    |      100    |   0
-      200    |      200    |   0
-      250    |      250    |   0
+![Console Eclipse](SOPC/Captures/eclipse_console_SOPC_pwm_anemometre.png)
 
-Mesure en continu
-Vent : 100 Hz
-Vent : 100 Hz
-Vent : 100 Hz
-Vent : 100 Hz
-Vent : 100 Hz
-```
+Les LED affichent la mesure en binaire, LED7 à gauche et LED0 à droite :
+
+| 100 Hz = `0110 0100` | 250 Hz = `1111 1010` |
+|---|---|
+| ![LED à 100 Hz](SOPC/Captures/affichage_led_100Hz.jpg) | ![LED à 250 Hz](SOPC/Captures/affichage_led_250Hz.jpg) |
 
 L'écart est nul parce que le PWM et la fenêtre d'une seconde partagent la même horloge à
 50 MHz. Avec le vrai capteur, asynchrone, la méthode garde une erreur de ±1 Hz (1 LSB).
@@ -54,6 +50,6 @@ L'écart est nul parce que le PWM et la fenêtre d'une seconde partagent la mêm
 BE_2026/
 ├── gestion_anemometre/   fonction simple et son interface Avalon
 ├── pwm/                  PWM et son interface Avalon
-├── SOPC/                 projet Quartus, système Platform Designer, SOPC.vhd, main.c
+├── SOPC/                 projet Quartus, système Platform Designer, SOPC.vhd, main.c, captures
 └── pwm_moteur/           première ébauche du PWM, non utilisée dans le SOPC
 ```

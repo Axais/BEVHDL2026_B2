@@ -44,3 +44,4 @@ Led.qsf
 SOPC_nios/
 *.sopcinfo
 software/
+*.bsf
