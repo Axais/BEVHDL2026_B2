@@ -19,8 +19,12 @@ Un dossier par système, contenant le code VHDL, son testbench ModelSim et les c
 ## `BE_2026/`
 
 Bureau d'études : même organisation qu'en TP, un dossier par module.
+Le compte rendu de l'étape SOPC (Nios II + PWM + anémomètre) est dans
+[`BE_2026/README.md`](BE_2026/README.md).
 
 | Dossier | Ce que fait le système |
 |---|---|
 | `gestion_anemometre/` | Mesure de la fréquence de l'anémomètre par comptage des fronts pendant 1 s. Machine de Moore à 4 états (`attente`, `mesure`, `fin`, `attente_acq`), deux modes pilotés par `continu` et `start_stop` : monocoup avec acquittement, ou relance immédiate. Résultat sur 8 bits dans `data_anemometre`, recopié sur `led` pour la vérification sur carte. |
+| `pwm/` | PWM dont la fréquence et le rapport cyclique sont réglés par le Nios. |
+| `SOPC/` | Système Nios II (Platform Designer) avec le PWM et l'anémomètre, validé sur carte. |
 | `pwm_moteur/` | PWM par comparateur (`max = 1024`, rapport cyclique 500/1024) avec inversion du sens de rotation à chaque appui. Machine à 2 états `attente` / `appui` pour ne compter qu'une fois un appui maintenu. |

@@ -38,3 +38,9 @@ Claude outputs/
 # --- Projet Quartus (non versionne) ---
 Led.qpf
 Led.qsf
+
+# --- Genere par Platform Designer et Eclipse ---
+.qsys_edit/
+SOPC_nios/
+*.sopcinfo
+software/
