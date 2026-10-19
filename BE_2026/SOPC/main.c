@@ -58,8 +58,8 @@ unsigned int mesurer(void)
     return *ane_code & ANE_DATA;
 }
 
-/* attend le bit valid (100 ms par essai, 3 s au plus) et renvoie le temps en ms */
-int attendre_valid(void)
+/* attend le bit valid (3 s au plus) */
+void attendre_valid(void)
 {
     int n = 0;
 
@@ -67,7 +67,6 @@ int attendre_valid(void)
         usleep(100000);
         n++;
     }
-    return n * 100;
 }
 
 void afficher_code(const char *texte)
@@ -85,7 +84,7 @@ int main()
     unsigned int rapports[4]  = {25, 50, 75, 90};
     unsigned int consignes[6] = {10, 25, 50, 100, 200, 250};
     unsigned int freq_lu, duty_lu, control_lu, mesure;
-    int i, temps;
+    int i;
 
     alt_putstr("\nValidation SOPC : PWM bouclee sur l'anemometre\n");
 
@@ -138,14 +137,13 @@ int main()
     *ane_config = 0;
     usleep(1000);
     *ane_config = ANE_RAZ_N;
+    usleep(10000);                        /* le filtre anti-rebond (1 ms) se cale sur l'entree */
     (void)*ane_code;                      /* efface un valid memorise */
     afficher_code("avant start         : ");
 
     *ane_config = ANE_RAZ_N | ANE_START_STOP;
-    temps = attendre_valid();
-    afficher("start               : valid recu apres ", temps);
-    alt_putstr(" ms\n");
-    afficher_code("                      ");
+    attendre_valid();
+    afficher_code("start               : ");
 
     regler_pwm(200, 50);
     usleep(2500000);
@@ -157,16 +155,15 @@ int main()
     afficher_code("stop                : ");
 
     *ane_config = ANE_RAZ_N | ANE_START_STOP;
-    temps = attendre_valid();
-    afficher("nouveau start       : valid recu apres ", temps);
-    alt_putstr(" ms\n");
-    afficher_code("                      ");
+    attendre_valid();
+    afficher_code("nouveau start       : ");
 
     /* 4. Retour en continu */
     alt_putstr("\nMesure en continu (PWM a 100 Hz)\n");
 
-    *ane_config = ANE_RAZ_N | ANE_CONTINU;
     regler_pwm(100, 50);
+    *ane_config = ANE_RAZ_N | ANE_CONTINU;
+    (void)*ane_code;                      /* efface le valid de la mesure monocoup */
 
     while (1) {
 

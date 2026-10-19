@@ -54,13 +54,12 @@ et 0 quand le PWM est arrêté.
 2. **Fréquence** : la mesure égale la consigne de 10 à 250 Hz.
 3. **Monocoup** : `valid` vaut 0 avant le start et passe à 1 après la fenêtre de mesure.
    La mesure ne change plus ensuite (100 Hz alors que le PWM est passé à 200 Hz), `valid`
-   revient à 0 au stop, et un nouveau start donne 200 Hz. Le temps affiché (800 ms) est
-   approximatif : `usleep` est une boucle d'attente logicielle, le SOPC n'ayant pas de
-   timer. La fenêtre de mesure dure exactement 1 s (50 000 000 coups d'horloge).
-4. **Continu** : la première ligne reprend la dernière mesure du monocoup, puis la mesure
-   suit le PWM à 100 Hz.
+   revient à 0 au stop, et un nouveau start donne 200 Hz.
+4. **Continu** : la mesure suit le PWM à 100 Hz.
 
-Les LED affichent la mesure en binaire, LED7 à gauche et LED0 à droite :
+Les LED affichent la mesure en binaire, LED7 à gauche et LED0 à droite. Elles changent à
+chaque fin de fenêtre d'une seconde : quand la fréquence change en cours de fenêtre, elles
+montrent pendant une seconde une valeur intermédiaire, puis la nouvelle mesure.
 
 | 100 Hz = `0110 0100` | 250 Hz = `1111 1010` |
 |---|---|
