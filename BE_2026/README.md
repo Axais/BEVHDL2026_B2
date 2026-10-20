@@ -8,10 +8,23 @@ Valider un SOPC Nios II intégrant le PWM et la fonction simple « anémomètre 
 d'oscilloscope, le PWM produit par le SOPC est renvoyé sur l'entrée de l'anémomètre : le
 Nios impose une fréquence et vérifie que l'anémomètre mesure la même.
 
+## Analyse fonctionnelle de la fonction simple
+
+La fonction `gestion_anemometre` compte les fronts du signal de l'anémomètre pendant 1 s, ce
+qui donne directement la fréquence en Hz sur 8 bits. Elle se découpe en cinq fonctions :
+mise en forme du signal (synchronisation, anti-rebond, détection de front), base de temps
+1 s, comptage des fronts, registre de sortie, et une machine à états qui les séquence.
+
+![Schéma fonctionnel de gestion_anemometre](gestion_anemometre/schema_fonctionnel_anemometre.png)
+
+L'analyse complète (entrées/sorties, rôle de chaque fonction, machine à états, précision,
+simulation ModelSim commentée, interface Avalon) est dans
+[`gestion_anemometre/README.md`](gestion_anemometre/README.md).
+
 ## Démarche
 
-1. **Fonction simple** `gestion_anemometre` : machine de Moore à 4 états qui compte les
-   fronts de l'entrée pendant 1 s, ce qui donne directement la fréquence en Hz sur 8 bits.
+1. **Fonction simple** `gestion_anemometre` : conçue et simulée sous ModelSim (voir
+   l'analyse fonctionnelle ci-dessus).
 2. **Interfaces Avalon** : chaque entité est enveloppée dans un composant `avalon_*` dont
    les entrées deviennent des registres, avec un process d'écriture et un de lecture
    (méthode du document COMPOSANT-NIOS). Le bit `valid` de l'anémomètre est mémorisé
@@ -72,7 +85,7 @@ L'écart est nul parce que le PWM et la fenêtre d'une seconde partagent la mêm
 
 ```
 BE_2026/
-├── gestion_anemometre/   fonction simple et son interface Avalon
+├── gestion_anemometre/   fonction simple, analyse fonctionnelle, interface Avalon
 ├── pwm/                  PWM et son interface Avalon
 ├── SOPC/                 projet Quartus, système Platform Designer, SOPC.vhd, main.c, captures
 └── pwm_moteur/           première ébauche du PWM, non utilisée dans le SOPC
