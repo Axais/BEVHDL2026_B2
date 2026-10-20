@@ -32,4 +32,5 @@ Le compte rendu de l'étape SOPC (Nios II + PWM + anémomètre) est dans
 | `gestion_anemometre/` | Mesure de la fréquence de l'anémomètre par comptage des fronts pendant 1 s. Machine de Moore à 4 états (`attente`, `mesure`, `fin`, `attente_acq`), en mode monocoup ou continu. Résultat sur 8 bits, recopié sur `led`. Avec son interface Avalon. |
 | `pwm/` | PWM dont la fréquence et le rapport cyclique sont réglés par le Nios, avec son interface Avalon. |
 | `SOPC/` | Système Nios II (Platform Designer) où le PWM est renvoyé sur l'anémomètre : projet Quartus, programme `main.c` et captures. Validé sur carte de 10 à 250 Hz. |
+| `gestion_verin/` | Fonction complexe : commande du vérin (PWM moteur, butées, lecture de l'angle de barre par le MCP3201). Analyse fonctionnelle faite, VHDL en cours. |
 | `pwm_moteur/` | Première ébauche du PWM moteur (rapport cyclique fixe, inversion du sens à chaque appui), non utilisée dans le SOPC. |
