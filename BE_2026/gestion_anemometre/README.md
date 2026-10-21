@@ -45,6 +45,24 @@ Le circuit est constitué de cinq fonctions :
 Dans `gestion_anemometre.vhd`, les quatre premières fonctions et l'état présent sont dans la
 partie séquentielle, le calcul de l'état suivant dans la partie combinatoire.
 
+## Signaux internes
+
+| Signal | Fonction | Rôle |
+|---|---|---|
+| `sync1`, `sync2` | mise en forme | `in_freq_anemometre` recopié sur deux fronts d'horloge successifs (synchronisation) |
+| `debounce_cnt` | mise en forme | durée, en coups d'horloge, pendant laquelle `sync2` diffère de `debounced` |
+| `debounced` | mise en forme | signal filtré : prend la valeur de `sync2` après 50 000 coups stables (1 ms) |
+| `avant` | mise en forme | valeur de `debounced` au coup d'horloge précédent |
+| `front` | mise en forme | 1 pendant un coup d'horloge à chaque front montant de `debounced` |
+| `timer` | base de temps | coups d'horloge écoulés dans la fenêtre, de 0 à 49 999 999 |
+| `tim_1s` | base de temps | 1 sur le dernier coup de la fenêtre d'1 s |
+| `compteur` | comptage | nombre de fronts dans la fenêtre en cours, saturé à 255 |
+| `registre` | registre de sortie | dernière mesure complète, recopiée sur `data_anemometre` et `led` |
+| `valid` | registre de sortie | recopié sur `data_valid` |
+| `ep`, `es` | machine à états | état présent, état suivant |
+| `compte` | machine à états | 1 dans l'état `mesure` : active `timer` et `compteur` |
+| `charge` | machine à états | 1 dans l'état `fin` : charge `registre` et met `valid` à 1 |
+
 ## Machine à états
 
 ![Machine à états](mae_gestion_anemometre.png)
@@ -101,6 +119,10 @@ Pour le SOPC, le circuit est enveloppé dans un composant Avalon qui a trois fon
 - **Mémorisation de `data_valid`** : en continu, `data_valid` ne dure que 20 ns, trop peu pour
   que le Nios le voie en lisant le registre. `valid_memo` passe à 1 avec `data_valid` et
   revient à 0 quand le Nios lit `code`.
+
+Signaux internes de l'interface : `config` (registre écrit par le Nios), `raz_n`, `continu`
+et `start_stop` (ses bits, envoyés au circuit), `ecriture` et `lecture` (accès du Nios en
+cours), `valid_memo` (`data_valid` mémorisé).
 
 | Registre | Adresse | Bits |
 |---|---|---|
