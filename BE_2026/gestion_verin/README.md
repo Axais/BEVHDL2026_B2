@@ -12,7 +12,7 @@ MCP3201. Le Nios le pilote par 6 registres Avalon.
 
 ## Découpage
 
-Comme conseillé, `gestion_verin` est découpé en **3 process**, chacun simulable seul :
+Comme conseillé, `gestion_verin` est découpé en **3 process**, chacun vérifié en simulation :
 
 1. **Gestion du PWM** : fabrique le signal `pwm` à partir de `freq` et `duty` ;
 2. **Contrôle des butées** : coupe le PWM quand la barre est en butée ;
@@ -106,13 +106,15 @@ et le moteur ne peut pas aller à droite.
 |---|---|---|
 | `compteur` | 1 | position dans la période du PWM, de 0 à `freq` − 1 |
 | `pwm` | 1 → 2 | PWM avant le contrôle des butées |
-| `fin_course_g`, `fin_course_d` | 2 | butée atteinte ; aussi relus par le Nios dans `config` |
+| `fin_g`, `fin_d` | 2 | butée gauche / droite atteinte, sortis sur `fin_course_g`, `fin_course_d` (relus par le Nios dans `config`) |
+| `moteur` | 2 | PWM après le contrôle des butées, sorti sur `out_pwm` |
 | `cpt_1M`, `top_1M` | 3 | division de 50 MHz ; `top_1M` vaut 1 un coup d'horloge par µs |
 | `cpt_100ms`, `start_conv` | 3 | division à 100 ms ; `start_conv` lance une lecture |
-| `ep`, `es` | 3 | état présent et état suivant de `pilote_adc` |
+| `ep` | 3 | état de `pilote_adc` : `repos`, `lecture`, `fin` |
+| `horloge` | 3 | horloge série fabriquée par `pilote_adc`, sortie sur `clk_adc` |
 | `nb_fronts` | 3 | nombre de fronts montants de `clk_adc` depuis la baisse de `cs_n` (0 à 15) |
-| `registre` | 3 | registre à décalage de `rec_dec` ; ses 12 derniers bits donnent l'angle |
-| `angle_barre` | 3 → 2 | dernière position lue, gardée jusqu'à la lecture suivante |
+| `registre` | 3 | registre à décalage de 12 bits (`rec_dec`) |
+| `angle` | 3 → 2 | dernière position lue, sortie sur `angle_barre` et gardée jusqu'à la lecture suivante |
 
 ## Échange avec le MCP3201
 
@@ -126,12 +128,18 @@ fronts montants. L'horloge ne doit pas dépasser 1,6 MHz (alimentation 5 V).
 | 3 | bit nul (0) |
 | 4 à 15 | B11 (poids fort) … B0 |
 
-Après le 15ᵉ front montant, les 12 derniers bits de `registre` forment `angle_barre`.
+`registre` fait 12 bits : au 15ᵉ front montant, les 3 premiers bits reçus (échantillonnage et
+bit nul) sont sortis par le décalage, et il contient B11…B0.
+
+`data_in` est lu au moment où le FPGA fait monter `clk_adc`, soit 1 µs après que le MCP3201
+l'a changé : il est stable, il n'a donc pas besoin d'être synchronisé comme l'entrée de
+l'anémomètre.
 
 Choix : `pilote_adc` inverse `clk_adc` à chaque `top_1M`, donc `clk_adc` = 500 kHz. Une lecture
 dure 15 × 2 µs = 30 µs, très court devant les 100 ms entre deux mesures.
 
-Machine à états proposée pour `pilote_adc` :
+Machine à états de `pilote_adc` (écrite dans le process 3 avec les autres fonctions de l'ADC,
+pour garder 3 process) :
 
 | État | `cs_n` | `clk_adc` | Rôle | Passe à |
 |---|---|---|---|---|
@@ -139,13 +147,50 @@ Machine à états proposée pour `pilote_adc` :
 | `lecture` | 0 | inversée à chaque `top_1M` | 15 fronts montants, `rec_dec` décale `data_in` | `fin` quand `nb_fronts` = 15 |
 | `fin` | 1 | 0 | `angle_barre` ← 12 derniers bits de `registre` | `repos` |
 
-## Validation prévue en simulation
+## Code
 
-1. **Process PWM** : `pwm` pour plusieurs valeurs de `freq` et `duty`, et `enable_pwm` à 0.
-2. **Process butées** : on fait varier `angle_barre`, `sens` et les butées ; `out_pwm` doit
-   être coupé seulement vers la butée atteinte.
-3. **Process ADC** : le testbench imite le MCP3201 (il renvoie une valeur connue, bit par bit,
-   sur les fronts descendants de `clk_adc`) ; on vérifie `cs_n`, `clk_adc` et `angle_barre`.
-4. **Ensemble `gestion_verin`** : les 3 process reliés.
-5. **`avalon_gestion_verin`** : écriture puis relecture des 6 registres, puis intégration
-   dans le SOPC et essai sur la carte d'interface vérin.
+| Fichier | Contenu |
+|---|---|
+| `gestion_verin.vhd` | cœur : process 1 (séquentiel, PWM), process 2 (combinatoire, butées), process 3 (séquentiel, ADC) |
+| `avalon_gestion_verin.vhd` | enveloppe Avalon : process d'écriture, process de lecture, cœur instancié |
+| `tb_gestion_verin.vht` | testbench du cœur, avec un modèle du MCP3201 |
+| `tb_avalon_gestion_verin.vht` | testbench de l'enveloppe : écriture et relecture des registres |
+| `sim_gestion_verin.do`, `sim_avalon_gestion_verin.do` | scripts ModelSim : compilation, signaux affichés, durée simulée |
+
+Les génériques `max_1M` = 50 et `max_100ms` = 100 000 (en µs) donnent les vraies durées ; les
+testbenches simulent donc 100 ms entre deux conversions.
+
+## Validation en simulation
+
+Le modèle du MCP3201 du testbench attend que `cs_n` passe à 0, laisse passer deux fronts
+descendants de `clk_adc`, sort le bit nul puis les 12 bits de `valeur_adc`, poids fort en
+premier, chacun sur un front descendant.
+
+**Cœur `gestion_verin`** (`tb_gestion_verin.vht`, 305 ms simulées) :
+
+| Temps | Action | Résultat |
+|---|---|---|
+| 0 ms | PWM 25 kHz (`freq` = 2000) à 50 % (`duty` = 1000), sens droite, butées 410 et 1320, le MCP3201 renvoie 800 | `out_pwm` actif ; `angle_barre` vaut 0 au démarrage, donc `fin_course_g` = 1, sans effet puisqu'on va à droite |
+| 0,2 ms | `duty` = 500 | rapport cyclique 25 % |
+| 0,4 ms | `enable_pwm` = 0 puis 1 | `out_pwm` bloqué à 0, puis de nouveau actif |
+| 100 ms | première conversion | `angle_barre` = 800, `fin_course_g` = 0, `fin_course_d` = 0 |
+| 110 ms | le MCP3201 renvoie 1500, au-delà de la butée droite | à 200 ms : `angle_barre` = 1500, `fin_course_d` = 1, `out_pwm` bloqué à 0 |
+| 201 ms | sens gauche | `out_pwm` de nouveau actif : le moteur peut s'éloigner de la butée |
+| 212 ms | le MCP3201 renvoie 300, en deçà de la butée gauche | à 300 ms : `angle_barre` = 300, `fin_course_g` = 1, `out_pwm` bloqué à 0 |
+| 301 ms | sens droite | `out_pwm` de nouveau actif |
+
+Chacun des 3 process est ainsi vérifié : le PWM (rapport cyclique et `enable_pwm`), les
+butées (coupure seulement vers la butée atteinte) et l'ADC (les trois valeurs 800, 1500 et
+300 sont relues exactement).
+
+**Enveloppe `avalon_gestion_verin`** (`tb_avalon_gestion_verin.vht`, 101 ms simulées) :
+
+- écriture des valeurs du programme d'exemple de la spécification : `freq` = 2000, `duty` =
+  1500, `butee_g` = 410, `butee_d` = 1320, `config` = 1 (circuit actif, PWM coupé) ;
+- relecture : 2000, 1500, 410, 1320, `config` = 17 et `angle_barre` = 0. 17 = 1 + 16 : le
+  bit 4 (`fin_course_g`) est à 1 parce qu'aucune conversion n'a encore eu lieu ;
+- `config` = 7 : `out_pwm` actif, `out_sens` = 1 ;
+- après la première conversion : `config` = 7 (plus de fin de course) et `angle_barre` = 800.
+
+Étapes suivantes : intégration dans le SOPC, puis essai sur la carte avec un vrai MCP3201 et
+l'analyseur logique Signal Tap de Quartus.
