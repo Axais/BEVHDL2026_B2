@@ -1,6 +1,15 @@
-# BE 2026 — SOPC Nios II : PWM + anémomètre
+# BE 2026 — Pilote de barre franche : compte rendu
 
 **Alexandre Aragones et Mathieu Florens** — M2 SME, groupe B2 — DE0-Nano (Cyclone IV E), Quartus 18.1 Lite
+
+## Avancement
+
+| Étape | État |
+|---|---|
+| Fonction simple : anémomètre | analyse fonctionnelle, code, simulation ModelSim, validée sur carte dans le SOPC |
+| Fonction complexe : gestion du vérin | analyse fonctionnelle, code (3 process + interface Avalon) et simulation ; essai sur carte à venir |
+
+# 1. Fonction simple et SOPC
 
 ## Objectif
 
@@ -81,11 +90,36 @@ montrent pendant une seconde une valeur intermédiaire, puis la nouvelle mesure.
 L'écart est nul parce que le PWM et la fenêtre d'une seconde partagent la même horloge à
 50 MHz. Avec le vrai capteur, asynchrone, la méthode garde une erreur de ±1 Hz (1 LSB).
 
-## Fichiers
+# 2. Fonction complexe : gestion du vérin
+
+Le circuit commande le vérin qui déplace la barre : il produit le PWM et le sens du moteur
+pour le pont en H de la carte d'interface, coupe le moteur en butée, et lit la position de
+la barre sur le convertisseur MCP3201. Comme conseillé, il est découpé en 3 process
+(PWM, contrôle des butées, gestion de l'ADC), avec une interface Avalon de 6 registres.
+
+![Schéma fonctionnel de la gestion du vérin](gestion_verin/schema_fonctionnel_verin.png)
+
+**Simulation** (305 ms en temps réel, le testbench imitant le MCP3201) :
+
+- PWM à 25 kHz, rapport cyclique 50 % puis 25 %, bloqué quand `enable_pwm` = 0 ;
+- les positions envoyées par le modèle du MCP3201 (800, 1500, 300) sont relues exactement,
+  une conversion toutes les 100 ms ;
+- le moteur est coupé quand la barre atteint une butée en allant vers elle, et peut repartir
+  dans l'autre sens ;
+- l'interface Avalon relit les valeurs du programme d'exemple de la spécification.
+
+L'analyse fonctionnelle complète, le rôle de chaque signal, le code et le détail de la
+simulation sont dans [`gestion_verin/README.md`](gestion_verin/README.md).
+
+Suite : intégration dans le SOPC, puis essai sur la carte avec un MCP3201 et un
+potentiomètre, observé avec l'analyseur logique Signal Tap de Quartus.
+
+# Fichiers
 
 ```
 BE_2026/
 ├── gestion_anemometre/   fonction simple, analyse fonctionnelle, interface Avalon
+├── gestion_verin/        fonction complexe : analyse, code, testbenches, scripts ModelSim
 ├── pwm/                  PWM et son interface Avalon
 ├── SOPC/                 projet Quartus, système Platform Designer, SOPC.vhd, main.c, captures
 └── pwm_moteur/           première ébauche du PWM, non utilisée dans le SOPC
