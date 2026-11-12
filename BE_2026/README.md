@@ -108,6 +108,12 @@ la barre sur le convertisseur MCP3201. Comme conseillé, il est découpé en 3 p
   dans l'autre sens ;
 - l'interface Avalon relit les valeurs du programme d'exemple de la spécification.
 
+![Vue d'ensemble de la simulation du vérin](gestion_verin/modelsim_verin_globale.png)
+
+Une lecture du MCP3201 toutes les 100 ms (`cs_n`), l'angle relu (800, 1500, 300) et les fins
+de course qui s'allument quand la barre dépasse une butée. Les zooms sur chaque process sont
+commentés dans le README du vérin.
+
 L'analyse fonctionnelle complète, le rôle de chaque signal, le code et le détail de la
 simulation sont dans [`gestion_verin/README.md`](gestion_verin/README.md).
 

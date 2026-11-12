@@ -156,6 +156,7 @@ pour garder 3 process) :
 | `tb_gestion_verin.vht` | testbench du cœur, avec un modèle du MCP3201 |
 | `tb_avalon_gestion_verin.vht` | testbench de l'enveloppe : écriture et relecture des registres |
 | `sim_gestion_verin.do`, `sim_avalon_gestion_verin.do` | scripts ModelSim : compilation, signaux affichés, durée simulée |
+| `vue_*.do` | une vue par chronogramme ci-dessous : signaux utiles et zoom, sans relancer la simulation |
 
 Les génériques `max_1M` = 50 et `max_100ms` = 100 000 (en µs) donnent les vraies durées ; les
 testbenches simulent donc 100 ms entre deux conversions.
@@ -192,5 +193,62 @@ butées (coupure seulement vers la butée atteinte) et l'ADC (les trois valeurs 
 - `config` = 7 : `out_pwm` actif, `out_sens` = 1 ;
 - après la première conversion : `config` = 7 (plus de fin de course) et `angle_barre` = 800.
 
-Étapes suivantes : intégration dans le SOPC, puis essai sur la carte avec un vrai MCP3201 et
+## Chronogrammes ModelSim
+
+**Vue d'ensemble (0 à 305 ms)**
+
+![Vue d'ensemble](modelsim_verin_globale.png)
+
+`cs_n` descend toutes les 100 ms : une lecture du MCP3201. `angle_barre` passe de 0 à 800,
+puis 1500, puis 300. `fin_course_g` vaut 1 tant que l'angle est sous `butee_g` = 410 (au
+démarrage, puis à 300) ; `fin_course_d` vaut 1 à 1500, au-delà de `butee_d` = 1320. `sens`
+passe à gauche à 201 ms et revient à droite à 301 ms. À cette échelle, `out_pwm` (25 kHz)
+forme un bloc ; ses coupures d'1 ms vers 200 et 300 ms sont détaillées plus bas.
+
+**Process 1 : PWM (0 à 0,7 ms)**
+
+![PWM](modelsim_verin_pwm.png)
+
+`compteur`, affiché en dents de scie, va de 0 à 1999 (`freq` = 2000) : une période de 40 µs,
+soit 25 kHz. `pwm` vaut 1 tant que `compteur` est inférieur à `duty` : 50 % jusqu'à 0,2 ms
+(`duty` = 1000), puis 25 % (`duty` = 500). À 0,4 ms, `enable_pwm` passe à 0 : `compteur`
+reste à 0 et `pwm` aussi. `out_pwm` suit `pwm`, puisque le moteur ne va pas vers une butée
+atteinte.
+
+**Process 3 : lecture du MCP3201 (vers 100 ms)**
+
+![Lecture du MCP3201](modelsim_verin_adc.png)
+
+Le top `start_conv` des 100 ms fait passer `ep` de `repos` à `lecture` : `cs_n` descend.
+`clk_adc` (500 kHz) donne 15 fronts montants, comptés par `nb_fronts`. Pendant les deux
+premiers, le MCP3201 ne pilote pas encore sa sortie : `data_in` vaut Z, et ces Z entrent dans
+`registre`. Il envoie ensuite le bit nul, puis 800 en binaire, `0011 0010 0000`, poids fort
+en premier, un bit par période de `clk_adc`. Au 15ᵉ front, les Z sont sortis du registre de
+12 bits, qui vaut `001100100000` ; `ep` revient à `repos` (après un coup d'horloge dans `fin`),
+`cs_n` remonte et `angle_barre` prend la valeur 800. La lecture dure environ 30 µs.
+
+**Process 2 : contrôle des butées (vers 200 ms)**
+
+![Butées](modelsim_verin_butees.png)
+
+À 200,03 ms, la lecture donne 1500, au-delà de `butee_d` = 1320 : `fin_course_d` passe à 1.
+Le moteur allant à droite (`sens` = 1), `out_pwm` est bloqué à 0 alors que `pwm` continue. À
+201 ms, `sens` passe à gauche : le moteur peut s'éloigner de la butée et `out_pwm` repart. Le
+même cas se produit à gauche vers 300 ms, avec 300 sous `butee_g` = 410 (vue d'ensemble).
+
+**Interface Avalon (0 à 0,7 µs)**
+
+![Interface Avalon](modelsim_verin_avalon.png)
+
+Le testbench écrit `freq` = 2000, `duty` = 1500, `butee_g` = 410, `butee_d` = 1320, puis
+`config` = 1 (`chipselect` = 1, `write_n` = 0) : chaque registre prend sa valeur au front
+d'horloge suivant. Il relit ensuite les adresses 0 à 5 : `readdata` = 2000, 1500, 410, 1320,
+17, 0. 17 = 1 + 16 : le bit 0 de `config` (`raz_n`) et le bit 4 (`fin_course_g`), à 1 parce
+qu'aucune conversion n'a encore eu lieu (angle 0, sous 410). Il écrit enfin `config` = 7.
+`readdata` suit l'adresse en permanence (16 avant l'écriture de `config` = 1) ; le Nios ne le
+prend que pendant une lecture.
+
+## Suite
+
+Intégration dans le SOPC, puis essai sur la carte avec un vrai MCP3201 et
 l'analyseur logique Signal Tap de Quartus.
